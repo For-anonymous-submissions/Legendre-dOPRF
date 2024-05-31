@@ -2,21 +2,21 @@
 # Legendre-dOPRF
 A library for the Legendre PRF-based distributed OPRF
 
-The optimal way to run experiments is to use the `go.sh` script.
+The optimal way to run experiments is to use the `go.sh` script.  
 Otherwise, read below how to use the makefile.
 
 ### Dependencies
 `gcc, blake3`
 
-**OSX:**
-	Install the blake3 library with homebrew
+**OSX:**  
+	Install the blake3 library with homebrew  
 	`brew install blake3`
 
-**Linux:**
-	Install `cmake`
-	Install blake3 by following the instructions here https://github.com/BLAKE3-team/BLAKE3
-	or
-	Clone the repo,  enter the directory `BLAKE3`, and run
+**Linux:**  
+	Install `cmake`  
+	Install blake3 by following the instructions here https://github.com/BLAKE3-team/BLAKE3  
+	or  
+	Clone the repo,  enter the directory `BLAKE3`, and run  
 ```
 cmake -S c -B build -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build build
@@ -91,7 +91,7 @@ Example usage:
 
 ---
 
-# Copyright 2024 NOVAK KALUĐEROVIĆ
+# Copyright 2024 REDACTED FOR ANONYMITY
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
