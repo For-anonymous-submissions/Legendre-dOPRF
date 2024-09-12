@@ -984,11 +984,11 @@ void mal_setup(const f_elm_t k[LAMBDA], f_elm_t s2[LAMBDA], DRSS_i r_i[CONST_N][
 /////////////////////////////////////////////
 // MALICIOUS EVALUATION
 /////////////////////////////////////////////
-void mal_evaluation(const RSS_i x_i, const RSS_i k_i[LAMBDA], const RSS_i s2_i[LAMBDA], const DRSS_i r_i[LAMBDA], const ASS_i az_i[LAMBDA][TAU_i * TAU_i][3], DRSS_i o_i[LAMBDA], DRSS_digest_i h_i){
+void mal_evaluation(const RSS_i x_i, const RSS_i k_i[LAMBDA], const RSS_i s2_i[LAMBDA], const DRSS_i r_i[LAMBDA], const ASS_i az_i[LAMBDA][TAU_i * TAU_i][3], DRSS_i o_i[LAMBDA], hash_digest h_i){
     RSS_i a_i;
     f_elm_t t0, t1;
 
-    f_elm_t (*temp)[TAU_i * TAU_i][LAMBDA] = malloc(sizeof(f_elm_t[TAU_i * TAU_i][LAMBDA]));
+    f_elm_t (*temp) = malloc(sizeof(f_elm_t[TAU_i * TAU_i * LAMBDA]));
 
 
     for(int j = 0; j < LAMBDA; j++){
@@ -997,28 +997,24 @@ void mal_evaluation(const RSS_i x_i, const RSS_i k_i[LAMBDA], const RSS_i s2_i[L
         for(share_T T0 = T_0; T0.ind < TAU_i; next_T(&T0)){
         for(share_T T1 = T_0; T1.ind < TAU_i; next_T(&T1)){
 
-            f_mul(a_i[T0.ind], s2_i[j][T1.ind], t0);                            // t0 = a_{T_0} * b_{T_1}
-            f_add(t0, r_i[j][T0.ind * TAU_i + T1.ind], t0);                     // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} = o_{T_1T_2}
+            f_mul(a_i[T0.ind], s2_i[j][T1.ind], t0);                                // t0 = a_{T_0} * b_{T_1}
+            f_add(t0, r_i[j][T0.ind * TAU_i + T1.ind], t0);                         // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} = o_{T_1T_2}
 
-            // hash(t0, h_i[j][T0.ind * TAU_i + T1.ind]);                          // h_i = Hash(t0) = Hash(o_{T_1T_2})
-            f_copy(t0, temp[0][T0.ind * TAU_i + T1.ind][j]);
+            f_copy(t0, temp[(TAU_i * TAU_i) * j + T0.ind * TAU_i + T1.ind]);        // copy and store a_{T_0} * b_{T_1} + r_{T_0T_1}
 
-            f_mul(a_i[T0.ind], az_i[j][T0.ind * TAU_i + T1.ind][0][0], t1);        // t1 = a_{T_0} * t^{a, T_0T_1}
-            f_add(t0, t1, t0);                                                  // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i
+            f_mul(a_i[T0.ind], az_i[j][T0.ind * TAU_i + T1.ind][0][0], t1);         // t1 = a_{T_0} * t^{a, T_0T_1}
+            f_add(t0, t1, t0);                                                      // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i
 
-            f_mul(s2_i[j][T1.ind], az_i[j][T0.ind * TAU_i + T1.ind][1][0], t1);    // t1 = b_{T_1} * t^{b, T_0T_1}_i
-            f_add(t0, t1, t0);                                                  // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i + b_{T_1} * t^{b, T_0T_1}_i
+            f_mul(s2_i[j][T1.ind], az_i[j][T0.ind * TAU_i + T1.ind][1][0], t1);     // t1 = b_{T_1} * t^{b, T_0T_1}_i
+            f_add(t0, t1, t0);                                                      // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i + b_{T_1} * t^{b, T_0T_1}_i
 
-            f_add(t0, az_i[j][T0.ind * TAU_i + T1.ind][2][0], t0);                 // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i + b_{T_1} * t^{b, T_0T_1}_i + t^{r, T_0T_1}_i
+            f_add(t0, az_i[j][T0.ind * TAU_i + T1.ind][2][0], t0);                  // t0 = a_{T_0} * b_{T_1} + r_{T_0T_1} + a_{T_0} * t^{a, T_0T_1}_i + b_{T_1} * t^{b, T_0T_1}_i + t^{r, T_0T_1}_i
 
             f_copy(t0, o_i[j][T0.ind * TAU_i + T1.ind]);
         }}
     }
 
-    for(share_T T0 = T_0; T0.ind < TAU_i; next_T(&T0)){
-    for(share_T T1 = T_0; T1.ind < TAU_i; next_T(&T1)){
-        hash_array(temp[0][T0.ind * TAU_i + T1.ind], LAMBDA, h_i[T0.ind * TAU_i + T1.ind]);    // h_i = Hash( o^0_{T_0T_1}, o^1_{T_0T_1}, ..., o^{LAMBDA - 1}_{T_0T_1})
-    }}
+    hash_array(temp, LAMBDA * TAU_i * TAU_i, h_i);
 
     free(temp);
 }
@@ -1026,15 +1022,16 @@ void mal_evaluation(const RSS_i x_i, const RSS_i k_i[LAMBDA], const RSS_i s2_i[L
 /////////////////////////////////////////////
 // MALICIOUS RECONSTRUCTION PROTOCOL
 /////////////////////////////////////////////
-int mal_reconstruction(const DRSS_i o_i[CONST_N][LAMBDA], const DRSS_digest_i h_i[CONST_N], f_elm_t o[LAMBDA]){
+int mal_reconstruction(const DRSS_i o_i[CONST_N][LAMBDA], const hash_digest h_i[CONST_N], f_elm_t o[LAMBDA]){
 
     hash_digest t_hd;
-    f_elm_t (*temp)[TAU * TAU][LAMBDA] = malloc(sizeof(f_elm_t[CONST_N][TAU * TAU][LAMBDA]));
+    f_elm_t (*temp)[TAU_i * TAU_i * LAMBDA] = malloc(sizeof(f_elm_t[CONST_N][TAU_i * TAU_i * LAMBDA]));
+
     int ret = 0;    //Return 1 if detected anomalies (i.e. hashes incorrect)
 
 
     for(int j = 0; j < LAMBDA; j++){
-        ind_T Ti_inds_0[CONST_N] = {0};
+        ind_T Ti_inds[CONST_N] = {0};
         f_elm_t v = {0};                // v =?= a_{T_0} * b_{T_1} + r_{T_0T_1} = o_{T_0T_1}
 
         for(share_T T0 = T_0; T0.ind < TAU; next_T(&T0)){
@@ -1043,30 +1040,26 @@ int mal_reconstruction(const DRSS_i o_i[CONST_N][LAMBDA], const DRSS_digest_i h_
 
             for(int i = 0; i < CONST_N; i++){
                 if(i_hold_TT(i, T0, T1)){
-                    f_add(v_TT, o_i[i][j][Ti_inds_0[i]++], v_TT);   
+                    f_add(v_TT, o_i[i][j][Ti_inds[i]], v_TT);   
                 }            
             }
             f_mul(v_TT, f_inverses[S_TT(T0, T1)], v_TT);
             f_add(v, v_TT, v);
 
-            f_copy(v_TT, temp[0][T0.ind * TAU + T1.ind][j]);
+            for(int i = 0; i < CONST_N; i++){
+                if(i_hold_TT(i, T0, T1))
+                    f_copy(v_TT, temp[i][j * (TAU_i * TAU_i) + Ti_inds[i]++]);         
+            }
         }}
         f_copy(v, o[j]);
     }
 
-    ind_T Ti_inds_0[CONST_N] = {0};
+    for(int i = 0; i < CONST_N; i++){
+        hash_array(temp[i], LAMBDA * TAU_i * TAU_i, t_hd);
+        if(memcmp(h_i[i], t_hd, NBYTES_DIGEST) != 0)
+            ret = 1;
+    }
 
-    for(share_T T0 = T_0; T0.ind < TAU; next_T(&T0)){
-    for(share_T T1 = T_0; T1.ind < TAU; next_T(&T1)){
-
-        hash_array(temp[0][T0.ind * TAU + T1.ind], LAMBDA, t_hd);        // h =?= o_{T_0T_1}
-        for(int i = 0; i < CONST_N; i++){
-            if(i_hold_TT(i, T0, T1)){
-                if(memcmp(h_i[i][Ti_inds_0[i]++], t_hd, NBYTES_DIGEST) != 0)
-                    ret = 1;
-            }            
-        }
-    }}
 
     free(temp);
 
@@ -1126,7 +1119,8 @@ unsigned char mal_protocol(prng_seed seed){
     // SERVERS EVALUATION STAGE
     ////////////////////////////////////////////
     DRSS_i (*o_i)[LAMBDA] = malloc(sizeof(DRSS_i[CONST_N][LAMBDA]));
-    DRSS_digest_i (*h_i) = malloc(sizeof(DRSS_digest_i[CONST_N]));
+    // DRSS_digest_i (*h_i) = malloc(sizeof(DRSS_digest_i[CONST_N]));
+    hash_digest (*h_i) = malloc(sizeof(hash_digest[CONST_N]));
 
     for(int i = 0; i < CONST_N; i++)
         mal_evaluation(x_i[i], k_i[i], s2_i[i], dz_i[i], az_i[i], o_i[i], h_i[i]);
@@ -1291,7 +1285,7 @@ int mal_protocol_full(prng_seed seed){
     // SERVERS EVALUATION STAGE
     ////////////////////////////////////////////
     DRSS_i (*o_i)[LAMBDA] = malloc(sizeof(DRSS_i[CONST_N][LAMBDA]));
-    DRSS_digest_i (*h_i) = malloc(sizeof(DRSS_digest_i[CONST_N]));
+    hash_digest (*h_i) = malloc(sizeof(hash_digest[CONST_N]));
     
     for(int i = 0; i < CONST_N; i++)
         mal_evaluation(x_i[i], k_i[i], s2_i[i], dz_i[i], az_i[i], o_i[i], h_i[i]);
@@ -1618,7 +1612,7 @@ uint64_t bench(int function_selector, prng_seed seed){
             DRSS_i (*dz_i) = malloc(sizeof(DRSS_i[LAMBDA]));
 
             DRSS_i (*o_i) = malloc(sizeof(DRSS_i[LAMBDA]));
-            DRSS_digest_i (*h_i) = malloc(sizeof(DRSS_digest_i));
+            hash_digest (*h_i) = malloc(sizeof(hash_digest[CONST_N]));
 
             nsecs_pre = cpucycles();    //cpucycles actually doesn't count cycles but counts nanoseconds
             for(int i = 0; i < LOOPS; i++)
@@ -1640,7 +1634,7 @@ uint64_t bench(int function_selector, prng_seed seed){
         case(14): { // mal_reconstruction
             
             DRSS_i (*o_i)[LAMBDA] = malloc(sizeof(DRSS_i[CONST_N][LAMBDA]));
-            DRSS_digest_i (*h_i) = malloc(sizeof(DRSS_digest_i[CONST_N]));
+            hash_digest (*h_i) = malloc(sizeof(hash_digest[CONST_N]));
             f_elm_t (*o) = malloc(sizeof(f_elm_t[LAMBDA]));
 
             nsecs_pre = cpucycles();    //cpucycles actually doesn't count cycles but counts nanoseconds
